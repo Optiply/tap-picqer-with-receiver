@@ -1,0 +1,317 @@
+"""Stream type classes for tap-picqer."""
+
+from typing import  Optional
+
+from singer_sdk import typing as th  # JSON Schema typing helpers
+
+from tap_picqer.client import picqerStream
+
+
+class ProductsStream(picqerStream):
+    """Define custom stream."""
+    name = "products"
+    path = "/products"
+    pagination = True
+    primary_keys = ["idproduct"]
+    schema = th.PropertiesList(
+        th.Property("idproduct", th.IntegerType),	
+        th.Property("idvatgroup", th.IntegerType),	
+        th.Property("name", th.StringType),
+        th.Property("price", th.NumberType),	
+        th.Property("fixedstockprice", th.NumberType),	
+        th.Property("idsupplier", th.IntegerType),	
+        th.Property("productcode", th.StringType),	
+        th.Property("productcode_supplier", th.StringType),
+        th.Property("deliverytime", th.IntegerType),	
+        th.Property("description", th.StringType),	
+        th.Property("barcode", th.StringType),	
+        th.Property("type", th.StringType),	
+        th.Property("unlimitedstock", th.BooleanType),
+        th.Property("weight", th.IntegerType),	
+        th.Property("length", th.IntegerType),	
+        th.Property("width", th.IntegerType),	
+        th.Property("height", th.IntegerType),	
+        th.Property("minimum_purchase_quantity", th.IntegerType),	
+        th.Property("purchase_in_quantities_of", th.IntegerType),	
+        th.Property("hs_code", th.StringType),	
+        th.Property("country_of_origin", th.StringType),
+        th.Property("active", th.BooleanType),	
+        th.Property("idfulfilment_customer", th.IntegerType),
+        th.Property("analysis_pick_amount_per_day", th.CustomType({"type": ["number", "string"]})),
+        th.Property("pricelists", th.ArrayType(
+            th.ObjectType(
+                th.Property("idpricelist", th.IntegerType),
+                th.Property("price", th.NumberType)
+            )
+        )),
+    ).to_dict()
+
+    def get_child_context(self, record: dict, context: Optional[dict]) -> dict:
+        """Return a context dictionary for child streams.""" 
+        return {
+             "idproduct": record["idproduct"]
+        }
+       
+
+class WareHouseProductsStream(picqerStream):
+    name = "warehouse_products"
+    path = "/products/{idproduct}/warehouses"
+    pagination = False
+    primary_keys = ["idwarehouse"]
+    parent_stream_type = ProductsStream
+    schema = th.PropertiesList(
+        th.Property("idproduct", th.IntegerType), 
+        th.Property("idwarehouse", th.IntegerType), 
+        th.Property("stock_level_order", th.IntegerType), 
+        th.Property("stock_level_desired", th.IntegerType), 
+        th.Property("stock_level_maximum", th.IntegerType), 
+        th.Property("stock_location", th.StringType)
+    ).to_dict()
+
+
+class ImageProductsStream(picqerStream):
+    name = "image_products"
+    path = "/products/{idproduct}/images"
+    pagination = False
+    primary_keys = ["idproduct_image"]
+    parent_stream_type = ProductsStream
+    schema = th.PropertiesList(
+        th.Property("idproduct", th.IntegerType), 
+        th.Property("idproduct_image", th.IntegerType),
+        th.Property("url", th.StringType), 
+        th.Property("contenttype", th.StringType),
+        th.Property("size", th.IntegerType), 
+    ).to_dict()
+
+
+class LocationProductsStream(picqerStream):
+    name = "location_products"
+    path = "/products/{idproduct}/locations"
+    pagination = False
+    primary_keys = ["idlocation"]
+    parent_stream_type = ProductsStream
+    schema = th.PropertiesList(
+        th.Property("idlocation", th.IntegerType),
+        th.Property("idwarehouse", th.IntegerType),
+        th.Property("parent_idlocation", th.IntegerType),
+        th.Property("name", th.StringType),
+        # th.Property("remarks", th.StringType) null,
+        th.Property("unlink_on_empty", th.BooleanType) ,
+        th.Property("location_type", th.ObjectType(
+            th.Property("idlocation_type", th.IntegerType),
+            th.Property("name", th.StringType),
+            th.Property("default", th.BooleanType),
+            th.Property("color", th.StringType)
+        )),
+        th.Property("is_bulk_location", th.BooleanType),
+        th.Property("stock_for_product", th.ObjectType(
+            th.Property("stock", th.IntegerType),
+            th.Property("stock_reserved_picklists", th.IntegerType),        
+        )) 
+    ).to_dict()
+
+
+class PartProductsStream(picqerStream):
+    name = "part_products"
+    path = "/products/{idproduct}/parts"
+    pagination = False
+    primary_keys = ["idproduct_part"]
+    parent_stream_type = ProductsStream
+    schema = th.PropertiesList(
+        th.Property("idproduct_part", th.IntegerType), 
+        th.Property("idproduct", th.IntegerType),
+        th.Property("amount", th.IntegerType), 
+        th.Property("productcode", th.StringType),
+        th.Property("name", th.StringType), 
+    ).to_dict()
+
+    def post_process(self, row: dict, context: Optional[dict]) -> dict:
+        if row.get('error') == True:
+            return None
+        return row
+
+    
+
+class SuppliersStream(picqerStream):
+    name ="suppliers"
+    path = "/suppliers"
+    pagination = True
+    primary_keys=["idsupplier"]
+    schema = th.PropertiesList(
+        th.Property("idsupplier", th.IntegerType),	
+        th.Property("name", th.StringType),	
+        th.Property("contactname", th.StringType),	
+        th.Property("address", th.StringType),
+        th.Property("address2", th.StringType),	
+        th.Property("zipcode", th.StringType),
+        th.Property("city", th.StringType),
+        th.Property("region", th.StringType),
+        th.Property("country", th.StringType),
+        th.Property("telephone", th.StringType),	
+        th.Property("emailaddress", th.StringType),	
+        th.Property("remarks", th.StringType),	
+        th.Property("language", th.StringType),	
+    ).to_dict()
+
+
+class WarehousesStream(picqerStream):
+    name ="warehouses"
+    path = "/warehouses"
+    pagination = True
+    primary_keys=["idwarehouse"]
+    schema = th.PropertiesList(
+        th.Property("idwarehouse", th.IntegerType),	
+        th.Property("name", th.StringType),	
+        th.Property("accept_orders", th.BooleanType),	
+        th.Property("counts_for_general_stock", th.BooleanType),
+        th.Property("priority", th.IntegerType),	
+        th.Property("active", th.BooleanType),
+    ).to_dict()
+
+
+class ProductFieldsStream(picqerStream):
+    name ="productfields"
+    path = "/productfields"
+    pagination = True
+    primary_keys=["idproductfield"]
+    schema = th.PropertiesList(
+        th.Property("idproductfield", th.IntegerType),	
+        th.Property("title", th.StringType),	
+        th.Property("type", th.StringType),	
+        th.Property("required", th.BooleanType),	
+        th.Property("visible_picklist", th.BooleanType),
+        th.Property("visible_invoice", th.BooleanType),
+        th.Property("visible_shippinglist", th.BooleanType),
+        th.Property("visible_portal", th.BooleanType),
+        th.Property("visible_purchase_order", th.BooleanType),
+    ).to_dict()
+
+
+class OrdersStream(picqerStream):
+    name ="orders"
+    path = "/orders"
+    pagination = True
+    primary_keys=["idorder"]
+    replication_key = "created"
+    schema = th.PropertiesList(
+        th.Property("idorder", th.IntegerType), 
+        th.Property("idcustomer", th.IntegerType),
+        th.Property("idtemplate", th.IntegerType), 
+        th.Property("idshippingprovider_profile", th.IntegerType), 
+        th.Property("orderid", th.StringType), 
+        th.Property("deliveryname", th.StringType), 
+        th.Property("deliverycontactname", th.StringType), 
+        th.Property("deliveryaddress", th.StringType), 
+        th.Property("deliveryaddress2", th.StringType), 
+        th.Property("deliveryzipcode", th.StringType), 
+        th.Property("deliverycity", th.StringType), 
+        th.Property("deliveryregion", th.StringType), 
+        th.Property("deliverycountry", th.StringType), 
+        th.Property("full_delivery_address", th.StringType), 
+        th.Property("invoicename", th.StringType), 
+        th.Property("invoicecontactname", th.StringType), 
+        th.Property("invoiceaddress", th.StringType), 
+        th.Property("invoiceaddress2", th.StringType), 
+        th.Property("invoicezipcode", th.StringType), 
+        th.Property("invoicecity", th.StringType), 
+        th.Property("invoiceregion", th.StringType), 
+        th.Property("invoicecountry", th.StringType), 
+        th.Property("full_invoice_address", th.StringType), 
+        th.Property("telephone", th.StringType), 
+        th.Property("emailaddress", th.StringType), 
+        th.Property("reference", th.StringType), 
+        th.Property("customer_remarks", th.StringType), 
+        th.Property("partialdelivery", th.BooleanType), 
+        th.Property("discount", th.NumberType), 
+        th.Property("invoiced", th.BooleanType), 
+        th.Property("status", th.StringType), 
+        th.Property("idfulfilment_customer", th.IntegerType), 
+        th.Property("warehouses", th.ArrayType(th.IntegerType)), 
+        th.Property("preferred_delivery_date", th.DateTimeType), 
+        th.Property("language", th.StringType), 
+        th.Property("products", th.ArrayType(
+            th.ObjectType(
+                th.Property("idproduct", th.IntegerType), 
+                th.Property("amount", th.IntegerType), 
+                th.Property("productcode", th.StringType), 
+                th.Property("name", th.StringType), 
+                th.Property("remarks", th.StringType), 
+                th.Property("price", th.NumberType), 
+                th.Property("idvatgroup", th.IntegerType), 
+            )
+        )), 
+       
+        th.Property("pricelists", th.CustomType({"type": ["array", "string"]})), 
+        th.Property("picklists",  th.CustomType({"type": ["array", "string"]})), 
+        th.Property("created", th.DateTimeType)
+
+    ).to_dict()
+
+
+class OrderFieldsStream(picqerStream):
+    name ="orderfields"
+    path = "/orderfields"
+    pagination = True
+    primary_keys=["idorderfield"]
+    schema = th.PropertiesList(
+        th.Property("idorderfield", th.IntegerType),	
+        th.Property("title", th.StringType),	
+        th.Property("type", th.StringType),	
+        th.Property("required", th.BooleanType),	
+        th.Property("visible_picklist", th.BooleanType),
+        th.Property("visible_portal", th.BooleanType),
+    ).to_dict()
+
+
+class BackOrdersStream(picqerStream):
+    name ="backorders"
+    path = "/backorders"
+    pagination = True
+    primary_keys=["idbackorder"]
+    replication_key = "created_at"
+    schema = th.PropertiesList(
+        th.Property("idbackorder", th.IntegerType),	
+        th.Property("idorder", th.IntegerType),	
+        th.Property("idproduct", th.IntegerType),
+        th.Property("idcustomer", th.IntegerType),
+        th.Property("idwarehouse", th.IntegerType),	
+        th.Property("amount", th.IntegerType),	
+        th.Property("amount_available", th.IntegerType),	
+        th.Property("priority", th.IntegerType),
+        th.Property("created_at", th.DateTimeType),
+        th.Property("date_available", th.DateTimeType),
+    ).to_dict()
+
+
+class PurchaseOrdersStream(picqerStream):
+    name ="purchaseorders"
+    path = "/purchaseorders"
+    pagination = True
+    primary_keys=["idpurchaseorder"]
+    replication_key = "updated"
+
+    schema = th.PropertiesList(
+        th.Property("idpurchaseorder", th.IntegerType),	
+        th.Property("idsupplier", th.IntegerType),	
+        th.Property("idtemplate", th.IntegerType),
+        th.Property("idwarehouse", th.IntegerType),
+        th.Property("purchaseorderid", th.StringType),
+        th.Property("supplier_name", th.StringType),
+        th.Property("supplier_orderid", th.StringType),
+        th.Property("updated", th.DateTimeType),
+        th.Property("status", th.StringType),
+        th.Property("remarks", th.StringType),
+        th.Property("delivery_date", th.StringType),
+        th.Property("language", th.StringType),
+        th.Property("products", th.ArrayType(
+            th.ObjectType(
+                th.Property("idproduct", th.IntegerType),
+                th.Property("amount", th.IntegerType),
+                th.Property("price", th.NumberType),
+            )
+        )),
+        th.Property("idfulfilment_customer", th.IntegerType)
+       
+    ).to_dict()
+
+

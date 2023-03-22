@@ -1,0 +1,97 @@
+"""REST client handling, including picqerStream base class."""
+
+import requests
+from pathlib import Path
+from typing import Any, Dict, Optional, Iterable
+from singer_sdk.exceptions import FatalAPIError, RetriableAPIError
+from datetime import datetime
+from singer_sdk.helpers.jsonpath import extract_jsonpath
+from singer_sdk.streams import RESTStream
+from singer_sdk.authenticators import BasicAuthenticator
+
+
+class picqerStream(RESTStream):
+    """picqer stream class."""
+
+
+    # OR use a dynamic url_base:
+    @property
+    def url_base(self) -> str:
+        """Return the API URL root, configurable via tap settings."""
+        org = self.config.get("org")
+        url_base = f"https://{org}.picqer.com/api/v1"
+        return url_base
+
+    records_jsonpath = "$[*]"  # Or override `parse_response`.
+    next_page_token_jsonpath = "$.next_page"  # Or override `get_next_page_token`.
+
+    @property
+    def authenticator(self) -> BasicAuthenticator:
+        """Return a new authenticator object."""
+        return BasicAuthenticator.create_for_stream(
+            self,
+            username=self.config.get("api_key"),
+            password=None,
+        )
+
+    @property
+    def http_headers(self) -> dict:
+        """Return the http headers needed."""
+        headers = {}
+        
+        headers["User-Agent"] = "MyPicqerClient (picqer.com/api - support@picqer.com)"
+        # If not using an authenticator, you may also provide inline auth headers:
+        # headers["Private-Token"] = self.config.get("auth_token")
+        return headers
+
+    def get_next_page_token(
+        self, response: requests.Response, previous_token: Optional[Any]
+    ) -> Optional[Any]:
+        """Return a token for identifying next page or None if no more pages."""
+        # TODO: If pagination is required, return a token which can be used to get the
+        #       next page. If this is the final page, return "None" to end the
+        response = response.json()
+        if self.pagination == False:
+            return None
+        if previous_token == None:
+            next_page_token = 100
+            return next_page_token
+        if len(response) == 0 :
+            return None
+        else:
+            next_page_token = previous_token + 100
+            return next_page_token
+
+
+    def get_url_params(
+        self, context: Optional[dict], next_page_token: Optional[Any]
+    ) -> Dict[str, Any]:
+        """Return a dictionary of values to be used in URL parameterization."""
+        params: dict = {}
+        if next_page_token and self.pagination:
+            params["offset"] = next_page_token
+        start_date = self.get_starting_timestamp(context)
+        if self.replication_key == 'updated':
+            params["updated_after"] = datetime.strftime(start_date, "%y-%m-%d %H:%M:%S")
+        elif self.replication_key in ['created', 'created_at']:
+            params["sincedate"] = datetime.strftime(start_date, "%y-%m-%d %H:%M:%S")
+        return params
+
+
+    def validate_response(self, response: requests.Response) -> None:
+        """Validate HTTP response.
+        """
+        if (
+            response.status_code in self.extra_retry_statuses
+            or 500 <= response.status_code < 600
+        ):
+            msg = self.response_error_message(response)
+            raise RetriableAPIError(msg, response)
+        elif response.status_code == 404:
+            response = response.json()
+            if response['error_code'] == 20:
+                #Means that the product doesn't have parts
+                return
+        elif 400 <= response.status_code < 500:
+            msg = self.response_error_message(response)
+            raise FatalAPIError(msg)
