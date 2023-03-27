@@ -71,10 +71,11 @@ class picqerStream(RESTStream):
         if next_page_token and self.pagination:
             params["offset"] = next_page_token
         start_date = self.get_starting_timestamp(context)
-        if self.replication_key == 'updated':
-            params["updated_after"] = datetime.strftime(start_date, "%y-%m-%d %H:%M:%S")
-        elif self.replication_key in ['created', 'created_at']:
-            params["sincedate"] = datetime.strftime(start_date, "%y-%m-%d %H:%M:%S")
+        if start_date:
+            if self.replication_key == 'updated':
+                params["updated_after"] = datetime.strftime(start_date, "%y-%m-%d %H:%M:%S")
+            elif self.replication_key in ['created', 'created_at']:
+                params["sincedate"] = datetime.strftime(start_date, "%y-%m-%d %H:%M:%S")
         return params
 
 
