@@ -18,7 +18,8 @@ from tap_picqer.streams import (
     OrdersStream,
     OrderFieldsStream,
     BackOrdersStream,
-    PurchaseOrdersStream
+    PurchaseOrdersStream,
+    StockProductsStream
     
 )
 # TODO: Compile a list of custom stream types here
@@ -35,7 +36,8 @@ STREAM_TYPES = [
     OrdersStream,
     OrderFieldsStream,
     BackOrdersStream,
-    PurchaseOrdersStream
+    PurchaseOrdersStream,
+    StockProductsStream
 ]
 
 
