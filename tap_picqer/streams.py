@@ -69,6 +69,23 @@ class WareHouseProductsStream(picqerStream):
     ).to_dict()
 
 
+class StockProductsStream(picqerStream):
+    name = "stock_products"
+    path = "/products/{idproduct}/stock"
+    primary_keys = ["idwarehouse"]
+    pagination = False
+    parent_stream_type = ProductsStream
+    schema = th.PropertiesList(
+        th.Property("idwarehouse", th.IntegerType),
+        th.Property("stock", th.IntegerType),
+        th.Property("reserved", th.IntegerType),
+        th.Property("reservedbackorders", th.IntegerType),
+        th.Property("reservedpicklists", th.IntegerType),
+        th.Property("reservedallocations", th.IntegerType),
+        th.Property("freestock", th.IntegerType)
+    ).to_dict()
+
+
 class ImageProductsStream(picqerStream):
     name = "image_products"
     path = "/products/{idproduct}/images"
