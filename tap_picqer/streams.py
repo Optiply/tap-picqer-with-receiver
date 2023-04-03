@@ -77,6 +77,7 @@ class StockProductsStream(picqerStream):
     parent_stream_type = ProductsStream
     schema = th.PropertiesList(
         th.Property("idwarehouse", th.IntegerType),
+        th.Property("idproduct", th.IntegerType),
         th.Property("stock", th.IntegerType),
         th.Property("reserved", th.IntegerType),
         th.Property("reservedbackorders", th.IntegerType),
@@ -316,6 +317,7 @@ class PurchaseOrdersStream(picqerStream):
         th.Property("supplier_name", th.StringType),
         th.Property("supplier_orderid", th.StringType),
         th.Property("updated", th.DateTimeType),
+        th.Property("created", th.DateTimeType),
         th.Property("status", th.StringType),
         th.Property("remarks", th.StringType),
         th.Property("delivery_date", th.StringType),
