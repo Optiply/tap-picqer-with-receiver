@@ -136,7 +136,8 @@ class PartProductsStream(picqerStream):
     primary_keys = ["idproduct_part"]
     parent_stream_type = ProductsStream
     schema = th.PropertiesList(
-        th.Property("idproduct_part", th.IntegerType), 
+        th.Property("idproduct_part", th.IntegerType),
+        th.Property("idproduct_main", th.IntegerType), 
         th.Property("idproduct", th.IntegerType),
         th.Property("amount", th.IntegerType), 
         th.Property("productcode", th.StringType),
@@ -146,7 +147,9 @@ class PartProductsStream(picqerStream):
     def post_process(self, row: dict, context: Optional[dict]) -> dict:
         if row.get('error') == True:
             return None
-        return row
+        else:
+            row['idproduct_main'] = context['idproduct']
+            return row
 
     
 
