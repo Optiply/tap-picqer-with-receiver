@@ -26,6 +26,18 @@ class ProductsStream(picqerStream):
         th.Property("description", th.StringType),	
         th.Property("barcode", th.StringType),	
         th.Property("type", th.StringType),	
+        th.Property("stock", th.ArrayType(
+            th.ObjectType(
+                th.Property("idwarehouse", th.IntegerType),
+                th.Property("idproduct", th.IntegerType),
+                th.Property("stock", th.IntegerType),
+                th.Property("reserved", th.IntegerType),
+                th.Property("reservedbackorders", th.IntegerType),
+                th.Property("reservedpicklists", th.IntegerType),
+                th.Property("reservedallocations", th.IntegerType),
+                th.Property("freestock", th.IntegerType)
+            )
+        )),
         th.Property("unlimitedstock", th.BooleanType),
         th.Property("weight", th.IntegerType),	
         th.Property("length", th.IntegerType),	
