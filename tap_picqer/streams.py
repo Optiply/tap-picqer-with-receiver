@@ -349,3 +349,63 @@ class PurchaseOrdersStream(picqerStream):
     ).to_dict()
 
 
+class PicklistsStream(picqerStream):
+    """Define custom stream."""
+    name = "picklists"
+    path = "/picklists"
+    primary_keys = ["idpicklist"]
+    pagination = True
+    replication_key = "created"
+    schema = th.PropertiesList(
+        th.Property("idpicklist", th.IntegerType),
+        th.Property("picklistid", th.StringType),
+        th.Property("idcustomer", th.IntegerType),
+        th.Property("idorder", th.IntegerType),
+        th.Property("idreturn", th.IntegerType),
+        th.Property("idwarehouse", th.IntegerType),
+        th.Property("idtemplate", th.IntegerType),
+        th.Property("idshippingprovider_profile", th.IntegerType),
+        th.Property("deliveryname", th.StringType),
+        th.Property("deliverycontact", th.StringType),
+        th.Property("deliveryaddress", th.StringType),
+        th.Property("deliveryaddress2", th.StringType),
+        th.Property("deliveryzipcode", th.StringType),
+        th.Property("deliverycity", th.StringType),
+        th.Property("deliveryregion", th.StringType),
+        th.Property("deliverycountry", th.StringType),
+        th.Property("emailaddress", th.StringType),
+        th.Property("telephone", th.StringType),
+        th.Property("reference", th.StringType),
+        th.Property("assigned_to_iduser", th.IntegerType),
+        th.Property("invoiced", th.BooleanType),
+        th.Property("urgent", th.BooleanType),
+        th.Property("status", th.StringType),
+        th.Property("totalproducts", th.IntegerType),
+        th.Property("totalpicked", th.IntegerType),
+        th.Property("snoozed_until", th.DateTimeType),
+        th.Property("closed_by_iduser", th.IntegerType),
+        th.Property("closed_at", th.DateTimeType),
+        th.Property("created", th.DateTimeType),
+        th.Property("updated", th.DateTimeType),
+        th.Property("products", th.ArrayType(th.ObjectType(
+            th.Property("idpicklist_product", th.IntegerType),
+            th.Property("idproduct", th.IntegerType),
+            th.Property("idorder_product", th.IntegerType),
+            th.Property("idreturn_product_replacement", th.IntegerType),
+            th.Property("idvatgroup", th.IntegerType),
+            th.Property("productcode", th.StringType),
+            th.Property("name", th.StringType),
+            th.Property("remarks", th.StringType),
+            th.Property("amount", th.IntegerType),
+            th.Property("amount_picked", th.IntegerType),
+            th.Property("price", th.NumberType),
+            th.Property("weight", th.IntegerType),
+            th.Property("stocklocation", th.StringType),
+            th.Property("has_parts", th.BooleanType),
+            th.Property("pick_locations", th.ArrayType(th.ObjectType(
+                th.Property("idlocation", th.IntegerType),
+                th.Property("name", th.StringType),
+                th.Property("amount", th.IntegerType)
+            )))
+        )))
+    ).to_dict()
