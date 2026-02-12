@@ -50,17 +50,18 @@ class picqerStream(RESTStream):
         """Return a token for identifying next page or None if no more pages."""
         # TODO: If pagination is required, return a token which can be used to get the
         #       next page. If this is the final page, return "None" to end the
-        response = response.json()
-        if self.pagination == False:
+        if self.pagination is False:
             return None
-        if previous_token == None:
+        response_json = self._safe_response_json(response)
+        if previous_token is None:
+            if not response_json:
+                return None
             next_page_token = 100
             return next_page_token
-        if len(response) == 0 :
+        if not response_json:
             return None
-        else:
-            next_page_token = previous_token + 100
-            return next_page_token
+        next_page_token = previous_token + 100
+        return next_page_token
 
 
     def get_url_params(
@@ -89,10 +90,35 @@ class picqerStream(RESTStream):
             msg = self.response_error_message(response)
             raise RetriableAPIError(msg, response)
         elif response.status_code == 404:
-            response = response.json()
-            if response['error_code'] == 20:
-                #Means that the product doesn't have parts
+            response_json = self._safe_response_json(response)
+            if isinstance(response_json, dict) and response_json.get("error_code") == 20:
+                # Means that the product doesn't have parts.
                 return
+            self.logger.warning(
+                "Received 404 for endpoint '%s' in stream '%s'. Treating as empty response.",
+                self.path,
+                self.name,
+            )
+            return
         elif 400 <= response.status_code < 500:
             msg = self.response_error_message(response)
             raise FatalAPIError(msg)
+
+    def parse_response(self, response: requests.Response) -> Iterable[dict]:
+        """Parse records from response body."""
+        response_json = self._safe_response_json(response)
+        if response_json is None:
+            if response.status_code == 404:
+                # 404s are treated as empty for optional/unavailable endpoints.
+                return
+            msg = f"Expected JSON response for path '{self.path}' but got non-JSON payload."
+            raise FatalAPIError(msg)
+        yield from extract_jsonpath(self.records_jsonpath, input=response_json)
+
+    @staticmethod
+    def _safe_response_json(response: requests.Response) -> Optional[Any]:
+        """Return response JSON or None if body is not valid JSON."""
+        try:
+            return response.json()
+        except ValueError:
+            return None

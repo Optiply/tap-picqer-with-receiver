@@ -1,6 +1,7 @@
 """Stream type classes for tap-picqer."""
 
-from typing import  Optional
+from datetime import datetime, timezone
+from typing import Optional
 
 from singer_sdk import typing as th  # JSON Schema typing helpers
 
@@ -13,6 +14,8 @@ class ProductsStream(picqerStream):
     path = "/products"
     pagination = True
     primary_keys = ["idproduct"]
+    replication_key = "updated"
+
     schema = th.PropertiesList(
         th.Property("idproduct", th.IntegerType),	
         th.Property("idvatgroup", th.IntegerType),	
@@ -56,6 +59,11 @@ class ProductsStream(picqerStream):
                 th.Property("price", th.NumberType)
             )
         )),
+        th.Property("created", th.DateTimeType),
+        th.Property("updated", th.DateTimeType),
+        th.Property("assembled", th.BooleanType),
+        th.Property("show_on_portal", th.BooleanType)
+
     ).to_dict()
 
     def get_child_context(self, record: dict, context: Optional[dict]) -> dict:
@@ -63,7 +71,43 @@ class ProductsStream(picqerStream):
         return {
              "idproduct": record["idproduct"]
         }
-       
+
+    def post_process(self, row: dict, context: Optional[dict]) -> Optional[dict]:
+        """Filter records client-side for incremental behavior."""
+        start_ts = self.get_starting_timestamp(context)
+        if not start_ts:
+            return row
+
+        updated_ts = self._parse_timestamp(row.get(self.replication_key))
+        if not updated_ts:
+            return row
+
+        if self._normalize_timestamp(updated_ts) <= self._normalize_timestamp(start_ts):
+            return None
+        return row
+
+    @staticmethod
+    def _parse_timestamp(value: Optional[str]) -> Optional[datetime]:
+        """Parse timestamp values returned by Picqer."""
+        if not value:
+            return None
+        if isinstance(value, datetime):
+            return value
+        text_value = str(value)
+        try:
+            return datetime.fromisoformat(text_value)
+        except ValueError:
+            try:
+                return datetime.strptime(text_value, "%Y-%m-%d %H:%M:%S")
+            except ValueError:
+                return None
+
+    @staticmethod
+    def _normalize_timestamp(value: datetime) -> datetime:
+        """Normalize to naive UTC for safe datetime comparison."""
+        if value.tzinfo is None:
+            return value
+        return value.astimezone(timezone.utc).replace(tzinfo=None)
 
 class WareHouseProductsStream(picqerStream):
     name = "warehouse_products"
