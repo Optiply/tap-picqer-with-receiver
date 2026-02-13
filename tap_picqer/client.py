@@ -52,6 +52,9 @@ class picqerStream(RESTStream):
         #       next page. If this is the final page, return "None" to end the
         if self.pagination is False:
             return None
+        # Stop pagination on 404 so we don't keep requesting offset=100, 200, ...
+        if response.status_code == 404:
+            return None
         response_json = self._safe_response_json(response)
         if previous_token is None:
             if not response_json:
@@ -74,11 +77,22 @@ class picqerStream(RESTStream):
         start_date = self.get_starting_timestamp(context)
         if start_date:
             if self.replication_key == 'updated':
-                params["updated_after"] = datetime.strftime(start_date, "%y-%m-%d %H:%M:%S")
-            elif self.replication_key in ['created', 'created_at']:
-                params["sincedate"] = datetime.strftime(start_date, "%y-%m-%d %H:%M:%S")
+                params["updated_after"] = datetime.strftime(start_date, "%Y-%m-%d %H:%M:%S")
+            elif self.replication_key in ['created', 'created_at', 'changed_at']:
+                params["sincedate"] = datetime.strftime(start_date, "%Y-%m-%d %H:%M:%S")
         return params
 
+    def prepare_request(
+        self, context: Optional[dict], next_page_token: Optional[Any]
+    ) -> requests.PreparedRequest:
+        """Log full request URL and params, then prepare the request."""
+        prepared = super().prepare_request(context, next_page_token)
+        self.logger.info(
+            "HTTP %s %s",
+            prepared.method,
+            prepared.url,
+        )
+        return prepared
 
     def validate_response(self, response: requests.Response) -> None:
         """Validate HTTP response.

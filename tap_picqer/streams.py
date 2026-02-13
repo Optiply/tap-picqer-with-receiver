@@ -109,6 +109,140 @@ class ProductsStream(picqerStream):
             return value
         return value.astimezone(timezone.utc).replace(tzinfo=None)
 
+class ProductsInativeStream(picqerStream):
+    """Define custom stream."""
+    name = "products_inactive"
+    path = "/products?inactive=true"
+    pagination = True
+    primary_keys = ["idproduct"]
+    replication_key = "updated"
+
+    schema = th.PropertiesList(
+        th.Property("idproduct", th.IntegerType),	
+        th.Property("idvatgroup", th.IntegerType),	
+        th.Property("name", th.StringType),
+        th.Property("price", th.NumberType),	
+        th.Property("fixedstockprice", th.NumberType),	
+        th.Property("idsupplier", th.IntegerType),	
+        th.Property("productcode", th.StringType),	
+        th.Property("productcode_supplier", th.StringType),
+        th.Property("deliverytime", th.IntegerType),	
+        th.Property("description", th.StringType),	
+        th.Property("barcode", th.StringType),	
+        th.Property("type", th.StringType),	
+        th.Property("stock", th.ArrayType(
+            th.ObjectType(
+                th.Property("idwarehouse", th.IntegerType),
+                th.Property("idproduct", th.IntegerType),
+                th.Property("stock", th.IntegerType),
+                th.Property("reserved", th.IntegerType),
+                th.Property("reservedbackorders", th.IntegerType),
+                th.Property("reservedpicklists", th.IntegerType),
+                th.Property("reservedallocations", th.IntegerType),
+                th.Property("freestock", th.IntegerType)
+            )
+        )),
+        th.Property("unlimitedstock", th.BooleanType),
+        th.Property("weight", th.IntegerType),	
+        th.Property("length", th.IntegerType),	
+        th.Property("width", th.IntegerType),	
+        th.Property("height", th.IntegerType),	
+        th.Property("minimum_purchase_quantity", th.IntegerType),	
+        th.Property("purchase_in_quantities_of", th.IntegerType),	
+        th.Property("hs_code", th.StringType),	
+        th.Property("country_of_origin", th.StringType),
+        th.Property("active", th.BooleanType),	
+        th.Property("idfulfilment_customer", th.IntegerType),
+        th.Property("analysis_pick_amount_per_day", th.CustomType({"type": ["number", "string"]})),
+        th.Property("pricelists", th.ArrayType(
+            th.ObjectType(
+                th.Property("idpricelist", th.IntegerType),
+                th.Property("price", th.NumberType)
+            )
+        )),
+        th.Property("created", th.DateTimeType),
+        th.Property("updated", th.DateTimeType),
+        th.Property("assembled", th.BooleanType),
+        th.Property("show_on_portal", th.BooleanType)
+
+    ).to_dict()
+
+    def get_child_context(self, record: dict, context: Optional[dict]) -> dict:
+        """Return a context dictionary for child streams.""" 
+        return {
+             "idproduct": record["idproduct"]
+        }
+
+    def post_process(self, row: dict, context: Optional[dict]) -> Optional[dict]:
+        """Filter records client-side for incremental behavior."""
+        start_ts = self.get_starting_timestamp(context)
+        if not start_ts:
+            return row
+
+        updated_ts = self._parse_timestamp(row.get(self.replication_key))
+        if not updated_ts:
+            return row
+
+        if self._normalize_timestamp(updated_ts) <= self._normalize_timestamp(start_ts):
+            return None
+        return row
+
+    @staticmethod
+    def _parse_timestamp(value: Optional[str]) -> Optional[datetime]:
+        """Parse timestamp values returned by Picqer."""
+        if not value:
+            return None
+        if isinstance(value, datetime):
+            return value
+        text_value = str(value)
+        try:
+            return datetime.fromisoformat(text_value)
+        except ValueError:
+            try:
+                return datetime.strptime(text_value, "%Y-%m-%d %H:%M:%S")
+            except ValueError:
+                return None
+
+    @staticmethod
+    def _normalize_timestamp(value: datetime) -> datetime:
+        """Normalize to naive UTC for safe datetime comparison."""
+        if value.tzinfo is None:
+            return value
+        return value.astimezone(timezone.utc).replace(tzinfo=None)
+    
+    
+class StockHistoryStream(picqerStream):
+    name = "stock_history"
+    path = "/stockhistory"
+    pagination = True
+    primary_keys = ["idproduct", "idwarehouse"]
+    replication_key = "changed_at"
+
+    schema = th.PropertiesList(
+        th.Property("idproduct_stock_history", th.IntegerType),
+        th.Property("idproduct", th.IntegerType),
+        th.Property("idwarehouse", th.IntegerType),
+        th.Property("iduser", th.IntegerType),
+        th.Property("idlocation", th.IntegerType),
+        th.Property("old_stock", th.IntegerType),
+        th.Property("stock_change", th.IntegerType),
+        th.Property("new_stock", th.IntegerType),
+        th.Property("reason", th.StringType),
+        th.Property("change_type", th.StringType),
+        th.Property("changed_at", th.DateTimeType),  # replication_key; API returns this, not sincedate
+    ).to_dict()
+
+    @property
+    def is_timestamp_replication_key(self) -> bool:
+        """Avoid catalog schema override breaking type detection."""
+        return True
+
+    def post_process(self, row: dict, context: Optional[dict]) -> Optional[dict]:
+        """Skip error/empty rows (API does not return sincedate; we use changed_at for bookmarking)."""
+        if not row or row.get("error"):
+            return None
+        return row
+
 class WareHouseProductsStream(picqerStream):
     name = "warehouse_products"
     path = "/products/{idproduct}/warehouses"

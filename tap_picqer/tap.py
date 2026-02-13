@@ -8,6 +8,8 @@ from singer_sdk import typing as th  # JSON schema typing helpers
 from tap_picqer.streams import (
     picqerStream,
     ProductsStream,
+    ProductsInativeStream,
+    StockHistoryStream,
     WareHouseProductsStream,
     ImageProductsStream,
     LocationProductsStream,
@@ -28,6 +30,10 @@ from tap_picqer.streams import (
 #       OR rewrite discover_streams() below with your custom logic.
 STREAM_TYPES = [
     ProductsStream,
+    ProductsInativeStream,
+    StockHistoryStream
+]
+"""
     WareHouseProductsStream,
     ImageProductsStream,
     LocationProductsStream,
@@ -42,7 +48,7 @@ STREAM_TYPES = [
     StockProductsStream,
     PicklistsStream,
     PicklistsClosedStream
-]
+"""
 
 
 class Tappicqer(Tap):
