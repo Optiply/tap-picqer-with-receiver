@@ -14,21 +14,20 @@ class ProductsStream(picqerStream):
     path = "/products"
     pagination = True
     primary_keys = ["idproduct"]
-    replication_key = "updated"
 
     schema = th.PropertiesList(
-        th.Property("idproduct", th.IntegerType),	
-        th.Property("idvatgroup", th.IntegerType),	
+        th.Property("idproduct", th.IntegerType),
+        th.Property("idvatgroup", th.IntegerType),
         th.Property("name", th.StringType),
-        th.Property("price", th.NumberType),	
-        th.Property("fixedstockprice", th.NumberType),	
-        th.Property("idsupplier", th.IntegerType),	
-        th.Property("productcode", th.StringType),	
+        th.Property("price", th.NumberType),
+        th.Property("fixedstockprice", th.NumberType),
+        th.Property("idsupplier", th.IntegerType),
+        th.Property("productcode", th.StringType),
         th.Property("productcode_supplier", th.StringType),
-        th.Property("deliverytime", th.IntegerType),	
-        th.Property("description", th.StringType),	
-        th.Property("barcode", th.StringType),	
-        th.Property("type", th.StringType),	
+        th.Property("deliverytime", th.IntegerType),
+        th.Property("description", th.StringType),
+        th.Property("barcode", th.StringType),
+        th.Property("type", th.StringType),
         th.Property("stock", th.ArrayType(
             th.ObjectType(
                 th.Property("idwarehouse", th.IntegerType),
@@ -42,15 +41,15 @@ class ProductsStream(picqerStream):
             )
         )),
         th.Property("unlimitedstock", th.BooleanType),
-        th.Property("weight", th.IntegerType),	
-        th.Property("length", th.IntegerType),	
-        th.Property("width", th.IntegerType),	
-        th.Property("height", th.IntegerType),	
-        th.Property("minimum_purchase_quantity", th.IntegerType),	
-        th.Property("purchase_in_quantities_of", th.IntegerType),	
-        th.Property("hs_code", th.StringType),	
+        th.Property("weight", th.IntegerType),
+        th.Property("length", th.IntegerType),
+        th.Property("width", th.IntegerType),
+        th.Property("height", th.IntegerType),
+        th.Property("minimum_purchase_quantity", th.IntegerType),
+        th.Property("purchase_in_quantities_of", th.IntegerType),
+        th.Property("hs_code", th.StringType),
         th.Property("country_of_origin", th.StringType),
-        th.Property("active", th.BooleanType),	
+        th.Property("active", th.BooleanType),
         th.Property("idfulfilment_customer", th.IntegerType),
         th.Property("analysis_pick_amount_per_day", th.CustomType({"type": ["number", "string"]})),
         th.Property("pricelists", th.ArrayType(
@@ -62,52 +61,19 @@ class ProductsStream(picqerStream):
         th.Property("created", th.DateTimeType),
         th.Property("updated", th.DateTimeType),
         th.Property("assembled", th.BooleanType),
-        th.Property("show_on_portal", th.BooleanType)
+        th.Property("show_on_portal", th.BooleanType),
+        th.Property("entity_type", th.StringType),
+        th.Property("received_at", th.DateTimeType),
+        th.Property("action", th.StringType),
 
     ).to_dict()
 
     def get_child_context(self, record: dict, context: Optional[dict]) -> dict:
-        """Return a context dictionary for child streams.""" 
+        """Return a context dictionary for child streams."""
         return {
-             "idproduct": record["idproduct"]
+             "idproduct": record["idproduct"],
+             "type": record["type"]
         }
-
-    def post_process(self, row: dict, context: Optional[dict]) -> Optional[dict]:
-        """Filter records client-side for incremental behavior."""
-        start_ts = self.get_starting_timestamp(context)
-        if not start_ts:
-            return row
-
-        updated_ts = self._parse_timestamp(row.get(self.replication_key))
-        if not updated_ts:
-            return row
-
-        if self._normalize_timestamp(updated_ts) <= self._normalize_timestamp(start_ts):
-            return None
-        return row
-
-    @staticmethod
-    def _parse_timestamp(value: Optional[str]) -> Optional[datetime]:
-        """Parse timestamp values returned by Picqer."""
-        if not value:
-            return None
-        if isinstance(value, datetime):
-            return value
-        text_value = str(value)
-        try:
-            return datetime.fromisoformat(text_value)
-        except ValueError:
-            try:
-                return datetime.strptime(text_value, "%Y-%m-%d %H:%M:%S")
-            except ValueError:
-                return None
-
-    @staticmethod
-    def _normalize_timestamp(value: datetime) -> datetime:
-        """Normalize to naive UTC for safe datetime comparison."""
-        if value.tzinfo is None:
-            return value
-        return value.astimezone(timezone.utc).replace(tzinfo=None)
 
 class ProductsInativeStream(picqerStream):
     """Define custom stream."""
@@ -325,6 +291,9 @@ class PartProductsStream(picqerStream):
     pagination = False
     primary_keys = ["idproduct_part"]
     parent_stream_type = ProductsStream
+    
+    ALLOWED_PRODUCT_TYPES: Optional[tuple] = ("virtual_composition", "composition_with_stock")
+
     schema = th.PropertiesList(
         th.Property("idproduct_part", th.IntegerType),
         th.Property("idproduct_main", th.IntegerType), 
@@ -333,6 +302,14 @@ class PartProductsStream(picqerStream):
         th.Property("productcode", th.StringType),
         th.Property("name", th.StringType), 
     ).to_dict()
+
+    def get_records(self, context: Optional[dict]):
+        """Skip requesting parts when parent product type is not in ALLOWED_PRODUCT_TYPES."""
+        if self.ALLOWED_PRODUCT_TYPES is not None and context:
+            product_type = context.get("type")
+            if product_type not in self.ALLOWED_PRODUCT_TYPES:
+                return
+        yield from super().get_records(context)
 
     def post_process(self, row: dict, context: Optional[dict]) -> dict:
         if row.get('error') == True:
@@ -399,10 +376,12 @@ class ProductFieldsStream(picqerStream):
 
 
 class OrdersStream(picqerStream):
-    name ="orders"
+    """Orders stream. Picqer API filters via query param sincedate (format: 2022-01-01 12:00:00)."""
+
+    name = "orders"
     path = "/orders"
     pagination = True
-    primary_keys=["idorder"]
+    primary_keys = ["idorder"]
     replication_key = "created"
     schema = th.PropertiesList(
         th.Property("idorder", th.IntegerType), 
@@ -454,7 +433,8 @@ class OrdersStream(picqerStream):
        
         th.Property("pricelists", th.CustomType({"type": ["array", "string"]})), 
         th.Property("picklists",  th.CustomType({"type": ["array", "string"]})), 
-        th.Property("created", th.DateTimeType)
+        th.Property("created", th.DateTimeType),
+        th.Property("updated", th.DateTimeType)
 
     ).to_dict()
 
@@ -649,5 +629,61 @@ class PicklistsClosedStream(picqerStream):
                 th.Property("amount", th.IntegerType)
             )))
         )))
+    ).to_dict()
+
+
+class ReceiptsStream(picqerStream):
+    """Define custom stream."""
+
+
+    name = "receipts"
+    path = "/receipts"
+    pagination = True
+    primary_keys = ["idreceipt"]
+    replication_key = "updated"
+
+    schema = th.PropertiesList(
+        th.Property("idreceipt", th.IntegerType),
+        th.Property("idwarehouse", th.IntegerType),
+        th.Property("version", th.IntegerType),
+        th.Property("supplier", th.ObjectType(
+            th.Property("idsupplier", th.IntegerType),
+            th.Property("name", th.StringType),
+        )),
+        th.Property("purchaseorder", th.ObjectType(
+            th.Property("idpurchaseorder", th.IntegerType),
+            th.Property("purchaseorderid", th.StringType),
+        )),
+        th.Property("receiptid", th.StringType),
+        th.Property("status", th.StringType),
+        th.Property("remarks", th.StringType),
+        th.Property("completed_by", th.CustomType({"type": ["object", "null"], "properties": {"iduser": {"type": "integer"}, "name": {"type": "string"}}})),
+        th.Property("amount_received", th.IntegerType),
+        th.Property("amount_received_excessive", th.IntegerType),
+        th.Property("completed_at", th.DateTimeType),
+        th.Property("created", th.DateTimeType),
+        th.Property("updated", th.DateTimeType),
+        th.Property("products", th.ArrayType(
+            th.ObjectType(
+                th.Property("idreceipt_product", th.IntegerType),
+                th.Property("idpurchaseorder_product", th.IntegerType),
+                th.Property("idproduct", th.IntegerType),
+                th.Property("idpurchaseorder", th.IntegerType),
+                th.Property("productcode", th.StringType),
+                th.Property("productcode_supplier", th.StringType),
+                th.Property("name", th.StringType),
+                th.Property("barcode", th.StringType),
+                th.Property("amount", th.IntegerType),
+                th.Property("amount_ordered", th.IntegerType),
+                th.Property("amount_receiving", th.IntegerType),
+                th.Property("added_by_receipt", th.BooleanType),
+                th.Property("abc_classification", th.CustomType({"type": ["object", "string", "null"]})),
+                th.Property("location", th.CustomType({"type": ["object", "array", "null"]})),
+                th.Property("created_at", th.DateTimeType),
+                th.Property("received_by_iduser", th.IntegerType),
+                th.Property("reverted_at", th.DateTimeType),
+                th.Property("reverted_by_iduser", th.IntegerType),
+            )
+        )),
     ).to_dict()
 
