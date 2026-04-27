@@ -1,6 +1,6 @@
 # tap-picqer
 
-`tap-picqer` is a Singer tap for picqer.
+`tap-picqer` is a Singer tap for Picqer, with Firestore incremental sync support.
 
 Built with the [Meltano Tap SDK](https://sdk.meltano.com) for Singer Taps.
 
