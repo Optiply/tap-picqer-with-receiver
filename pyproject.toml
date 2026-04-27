@@ -2,7 +2,7 @@
 name = "tap-picqer"
 version = "0.0.1"
 description = "`tap-picqer` is a Singer tap for picqer, built with the Meltano SDK for Singer Taps."
-authors = ["Alvaro Valarezo"]
+authors = ["Mário Costa", "Alvaro Valarezo"]
 keywords = [
     "ELT",
     "picqer",
