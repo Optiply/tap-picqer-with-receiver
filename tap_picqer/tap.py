@@ -158,10 +158,14 @@ class Tappicqer(Tap):
     def sync_all(self) -> None:
         """Apply receiver/host runtime selection before syncing."""
         ext_config = self.config.get("firestore_extension")
+        extension = None
+        full_sync_streams = []
         if ext_config and ext_config.get("enabled", False):
             extension = FirestoreExtension(tap=self, config=ext_config)
-            extension.apply_runtime_selection(self.streams)
+            full_sync_streams = extension.apply_runtime_selection(self.streams)
         super().sync_all()
+        if extension and full_sync_streams:
+            extension.write_post_full_sync_bookmarks(full_sync_streams)
 
 if __name__ == "__main__":
     Tappicqer.cli()
