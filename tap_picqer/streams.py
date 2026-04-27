@@ -382,7 +382,6 @@ class OrdersStream(picqerStream):
     path = "/orders"
     pagination = True
     primary_keys = ["idorder"]
-    replication_key = "created"
     schema = th.PropertiesList(
         th.Property("idorder", th.IntegerType),
         th.Property("idcustomer", th.IntegerType),
@@ -657,7 +656,10 @@ class ReceiptsStream(picqerStream):
         th.Property("receiptid", th.StringType),
         th.Property("status", th.StringType),
         th.Property("remarks", th.StringType),
-        th.Property("completed_by", th.CustomType({"type": ["object", "null"], "properties": {"iduser": {"type": "integer"}, "name": {"type": "string"}}})),
+        th.Property("completed_by", th.ObjectType(
+            th.Property("iduser", th.IntegerType),
+            th.Property("name", th.StringType),
+        )),
         th.Property("amount_received", th.IntegerType),
         th.Property("amount_received_excessive", th.IntegerType),
         th.Property("completed_at", th.DateTimeType),
