@@ -138,6 +138,12 @@ class Tappicqer(Tap):
         ),
     ).to_dict()
 
+    def load_state(self, state):
+        """Preserve receiver extension state flags in addition to bookmarks."""
+        super().load_state(state)
+        if "force_full_sync" in state:
+            self.state["force_full_sync"] = list(state.get("force_full_sync", []))
+
     def discover_streams(self) -> List[Stream]:
         """Return a list of discovered streams."""
         main_streams = [stream_class(tap=self) for stream_class in STREAM_TYPES]

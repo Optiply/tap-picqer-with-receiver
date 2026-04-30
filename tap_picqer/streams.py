@@ -1,11 +1,29 @@
 """Stream type classes for tap-picqer."""
 
+import json
 from datetime import datetime, timezone
 from typing import Optional
 
 from singer_sdk import typing as th  # JSON Schema typing helpers
 
 from tap_picqer.client import picqerStream
+
+
+def _stringify_field_value(value):
+    """Return a JSON-safe string value for schema fields declared as strings."""
+    if value is None or value == "":
+        return None
+    if isinstance(value, (dict, list)):
+        return json.dumps(value)
+    return str(value)
+
+
+def _stringify_fields(row: dict, field_names) -> dict:
+    """Convert selected record fields to strings, preserving null empties."""
+    for field_name in field_names:
+        if field_name in row:
+            row[field_name] = _stringify_field_value(row[field_name])
+    return row
 
 
 class ProductsStream(picqerStream):
@@ -51,13 +69,8 @@ class ProductsStream(picqerStream):
         th.Property("country_of_origin", th.StringType),
         th.Property("active", th.BooleanType),
         th.Property("idfulfilment_customer", th.IntegerType),
-        th.Property("analysis_pick_amount_per_day", th.CustomType({"type": ["number", "string"]})),
-        th.Property("pricelists", th.ArrayType(
-            th.ObjectType(
-                th.Property("idpricelist", th.IntegerType),
-                th.Property("price", th.NumberType)
-            )
-        )),
+        th.Property("analysis_pick_amount_per_day", th.StringType),
+        th.Property("pricelists", th.StringType),
         th.Property("created", th.DateTimeType),
         th.Property("updated", th.DateTimeType),
         th.Property("assembled", th.BooleanType),
@@ -65,15 +78,16 @@ class ProductsStream(picqerStream):
         th.Property("entity_type", th.StringType),
         th.Property("received_at", th.DateTimeType),
         th.Property("action", th.StringType),
-
     ).to_dict()
 
     def get_child_context(self, record: dict, context: Optional[dict]) -> dict:
         """Return a context dictionary for child streams."""
-        return {
-             "idproduct": record["idproduct"],
-             "type": record["type"]
-        }
+        return {"idproduct": record["idproduct"], "type": record["type"]}
+
+    def post_process(self, row: dict, context: Optional[dict]) -> Optional[dict]:
+        """Serialize flexible scalar fields as strings."""
+        return _stringify_fields(row, ["analysis_pick_amount_per_day", "pricelists"])
+
 
 class ProductsInativeStream(picqerStream):
     """Define custom stream."""
@@ -119,28 +133,21 @@ class ProductsInativeStream(picqerStream):
         th.Property("country_of_origin", th.StringType),
         th.Property("active", th.BooleanType),
         th.Property("idfulfilment_customer", th.IntegerType),
-        th.Property("analysis_pick_amount_per_day", th.CustomType({"type": ["number", "string"]})),
-        th.Property("pricelists", th.ArrayType(
-            th.ObjectType(
-                th.Property("idpricelist", th.IntegerType),
-                th.Property("price", th.NumberType)
-            )
-        )),
+        th.Property("analysis_pick_amount_per_day", th.StringType),
+        th.Property("pricelists", th.StringType),
         th.Property("created", th.DateTimeType),
         th.Property("updated", th.DateTimeType),
         th.Property("assembled", th.BooleanType),
-        th.Property("show_on_portal", th.BooleanType)
-
+        th.Property("show_on_portal", th.BooleanType),
     ).to_dict()
 
     def get_child_context(self, record: dict, context: Optional[dict]) -> dict:
         """Return a context dictionary for child streams."""
-        return {
-             "idproduct": record["idproduct"]
-        }
+        return {"idproduct": record["idproduct"]}
 
     def post_process(self, row: dict, context: Optional[dict]) -> Optional[dict]:
         """Filter records client-side for incremental behavior."""
+        row = _stringify_fields(row, ["analysis_pick_amount_per_day", "pricelists"])
         start_ts = self.get_starting_timestamp(context)
         if not start_ts:
             return row
@@ -430,12 +437,15 @@ class OrdersStream(picqerStream):
             )
         )),
 
-        th.Property("pricelists", th.CustomType({"type": ["array", "string"]})),
-        th.Property("picklists",  th.CustomType({"type": ["array", "string"]})),
+        th.Property("pricelists", th.StringType),
+        th.Property("picklists", th.StringType),
         th.Property("created", th.DateTimeType),
-        th.Property("updated", th.DateTimeType)
-
+        th.Property("updated", th.DateTimeType),
     ).to_dict()
+
+    def post_process(self, row: dict, context: Optional[dict]) -> Optional[dict]:
+        """Serialize flexible order relation fields as JSON strings."""
+        return _stringify_fields(row, ["pricelists", "picklists"])
 
 
 class OrderFieldsStream(picqerStream):
@@ -645,46 +655,23 @@ class ReceiptsStream(picqerStream):
         th.Property("idreceipt", th.IntegerType),
         th.Property("idwarehouse", th.IntegerType),
         th.Property("version", th.IntegerType),
-        th.Property("supplier", th.ObjectType(
-            th.Property("idsupplier", th.IntegerType),
-            th.Property("name", th.StringType),
-        )),
-        th.Property("purchaseorder", th.ObjectType(
-            th.Property("idpurchaseorder", th.IntegerType),
-            th.Property("purchaseorderid", th.StringType),
-        )),
+        th.Property("supplier", th.StringType),
+        th.Property("purchaseorder", th.StringType),
         th.Property("receiptid", th.StringType),
         th.Property("status", th.StringType),
         th.Property("remarks", th.StringType),
-        th.Property("completed_by", th.ObjectType(
-            th.Property("iduser", th.IntegerType),
-            th.Property("name", th.StringType),
-        )),
+        th.Property("completed_by", th.StringType),
         th.Property("amount_received", th.IntegerType),
         th.Property("amount_received_excessive", th.IntegerType),
         th.Property("completed_at", th.DateTimeType),
         th.Property("created", th.DateTimeType),
         th.Property("updated", th.DateTimeType),
-        th.Property("products", th.ArrayType(
-            th.ObjectType(
-                th.Property("idreceipt_product", th.IntegerType),
-                th.Property("idpurchaseorder_product", th.IntegerType),
-                th.Property("idproduct", th.IntegerType),
-                th.Property("idpurchaseorder", th.IntegerType),
-                th.Property("productcode", th.StringType),
-                th.Property("productcode_supplier", th.StringType),
-                th.Property("name", th.StringType),
-                th.Property("barcode", th.StringType),
-                th.Property("amount", th.IntegerType),
-                th.Property("amount_ordered", th.IntegerType),
-                th.Property("amount_receiving", th.IntegerType),
-                th.Property("added_by_receipt", th.BooleanType),
-                th.Property("abc_classification", th.CustomType({"type": ["object", "string", "null"]})),
-                th.Property("location", th.CustomType({"type": ["object", "array", "null"]})),
-                th.Property("created_at", th.DateTimeType),
-                th.Property("received_by_iduser", th.IntegerType),
-                th.Property("reverted_at", th.DateTimeType),
-                th.Property("reverted_by_iduser", th.IntegerType),
-            )
-        )),
+        th.Property("products", th.StringType),
     ).to_dict()
+
+    def post_process(self, row: dict, context: Optional[dict]) -> Optional[dict]:
+        """Serialize nested receipt relation fields as JSON strings for CSV targets."""
+        return _stringify_fields(
+            row,
+            ["supplier", "purchaseorder", "completed_by", "products"],
+        )
