@@ -70,7 +70,15 @@ class ProductsStream(picqerStream):
         th.Property("active", th.BooleanType),
         th.Property("idfulfilment_customer", th.IntegerType),
         th.Property("analysis_pick_amount_per_day", th.StringType),
-        th.Property("pricelists", th.StringType),
+        th.Property(
+            "pricelists",
+            th.ArrayType(
+                th.ObjectType(
+                    th.Property("idpricelist", th.IntegerType),
+                    th.Property("price", th.NumberType),
+                )
+            ),
+        ),
         th.Property("created", th.DateTimeType),
         th.Property("updated", th.DateTimeType),
         th.Property("assembled", th.BooleanType),
@@ -86,7 +94,7 @@ class ProductsStream(picqerStream):
 
     def post_process(self, row: dict, context: Optional[dict]) -> Optional[dict]:
         """Serialize flexible scalar fields as strings."""
-        return _stringify_fields(row, ["analysis_pick_amount_per_day", "pricelists"])
+        return _stringify_fields(row, ["analysis_pick_amount_per_day"])
 
 
 class ProductsInativeStream(picqerStream):
@@ -134,7 +142,15 @@ class ProductsInativeStream(picqerStream):
         th.Property("active", th.BooleanType),
         th.Property("idfulfilment_customer", th.IntegerType),
         th.Property("analysis_pick_amount_per_day", th.StringType),
-        th.Property("pricelists", th.StringType),
+        th.Property(
+            "pricelists",
+            th.ArrayType(
+                th.ObjectType(
+                    th.Property("idpricelist", th.IntegerType),
+                    th.Property("price", th.NumberType),
+                )
+            ),
+        ),
         th.Property("created", th.DateTimeType),
         th.Property("updated", th.DateTimeType),
         th.Property("assembled", th.BooleanType),
@@ -147,7 +163,7 @@ class ProductsInativeStream(picqerStream):
 
     def post_process(self, row: dict, context: Optional[dict]) -> Optional[dict]:
         """Filter records client-side for incremental behavior."""
-        row = _stringify_fields(row, ["analysis_pick_amount_per_day", "pricelists"])
+        row = _stringify_fields(row, ["analysis_pick_amount_per_day"])
         start_ts = self.get_starting_timestamp(context)
         if not start_ts:
             return row
