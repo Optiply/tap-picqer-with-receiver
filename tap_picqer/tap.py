@@ -67,13 +67,20 @@ class Tappicqer(Tap):
             description="Picqer organization subdomain.",
         ),
         th.Property(
+            "picqer_fulfilment",
+            th.BooleanType,
+            required=False,
+            default=False,
+            description="Skip Picqer endpoints unavailable for fulfilment accounts.",
+        ),
+        th.Property(
             "firestore_extension",
             th.CustomType(
                 {
                     "type": "object",
                     "properties": {
                         "enabled": {"type": "boolean"},
-                        "tenant_id": {"type": "string"},
+                        "tenant_uuid": {"type": "string"},
                         "project_id": {"type": "string"},
                         "private_key_id": {"type": "string"},
                         "private_key": {"type": "string"},

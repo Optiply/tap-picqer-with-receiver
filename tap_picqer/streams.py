@@ -83,6 +83,10 @@ class ProductsStream(picqerStream):
         th.Property("updated", th.DateTimeType),
         th.Property("assembled", th.BooleanType),
         th.Property("show_on_portal", th.BooleanType),
+        th.Property("tags", th.CustomType({"type": ["array", "object", "null"]})),
+        th.Property(
+            "productfields", th.CustomType({"type": ["array", "object", "null"]})
+        ),
         th.Property("entity_type", th.StringType),
         th.Property("received_at", th.DateTimeType),
         th.Property("action", th.StringType),
@@ -155,6 +159,10 @@ class ProductsInativeStream(picqerStream):
         th.Property("updated", th.DateTimeType),
         th.Property("assembled", th.BooleanType),
         th.Property("show_on_portal", th.BooleanType),
+        th.Property("tags", th.CustomType({"type": ["array", "object", "null"]})),
+        th.Property(
+            "productfields", th.CustomType({"type": ["array", "object", "null"]})
+        ),
     ).to_dict()
 
     def get_child_context(self, record: dict, context: Optional[dict]) -> dict:
@@ -347,7 +355,7 @@ class SuppliersStream(picqerStream):
     name ="suppliers"
     path = "/suppliers"
     pagination = True
-    primary_keys=["idsupplier"]
+    primary_keys = ["idsupplier"]
     schema = th.PropertiesList(
         th.Property("idsupplier", th.IntegerType),
         th.Property("name", th.StringType),
@@ -363,6 +371,15 @@ class SuppliersStream(picqerStream):
         th.Property("remarks", th.StringType),
         th.Property("language", th.StringType),
     ).to_dict()
+
+    def get_records(self, context: Optional[dict]):
+        """Skip suppliers for Picqer fulfilment accounts."""
+        if self.config.get("picqer_fulfilment", False):
+            self.logger.info(
+                "Skipping suppliers stream because picqer_fulfilment=true."
+            )
+            return
+        yield from super().get_records(context)
 
 
 class WarehousesStream(picqerStream):

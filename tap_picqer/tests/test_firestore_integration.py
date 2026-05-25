@@ -36,7 +36,7 @@ def test_picqer_tap_uses_firestore_extension(monkeypatch):
             "org": "example",
             "firestore_extension": {
                 "enabled": True,
-                "tenant_id": "tenant-1",
+                "tenant_uuid": "tenant-1",
                 "project_id": "project-id",
                 "private_key_id": "key-id",
                 "private_key": "-----BEGIN PRIVATE KEY-----\nabc\n-----END PRIVATE KEY-----\n",

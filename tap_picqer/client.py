@@ -115,6 +115,13 @@ class picqerStream(RESTStream):
             )
             return
         elif 400 <= response.status_code < 500:
+            response_json = self._safe_response_json(response)
+            if (
+                isinstance(response_json, dict)
+                and response_json.get("error_code") == 31
+                and response_json.get("error_message")
+            ):
+                raise FatalAPIError(response_json["error_message"])
             msg = self.response_error_message(response)
             raise FatalAPIError(msg)
 
