@@ -22,7 +22,7 @@ from tap_picqer.streams import (
     PurchaseOrdersStream,
     PicklistsStream,
     PicklistsClosedStream,
-    ReceiptsStream
+    ReceiptsStream,
 )
 from tap_firestore.extension import FirestoreExtension
 
@@ -44,12 +44,13 @@ STREAM_TYPES = [
     PurchaseOrdersStream,
     PicklistsStream,
     PicklistsClosedStream,
-    ReceiptsStream
+    ReceiptsStream,
 ]
 
 
 class Tappicqer(Tap):
     """picqer tap class."""
+
     name = "tap-picqer"
 
     # TODO: Update this section with the actual config values you expect:
@@ -58,7 +59,7 @@ class Tappicqer(Tap):
             "api_key",
             th.StringType,
             required=True,
-            description="The token to authenticate against the API service"
+            description="The token to authenticate against the API service",
         ),
         th.Property(
             "org",
@@ -85,6 +86,10 @@ class Tappicqer(Tap):
                         "private_key_id": {"type": "string"},
                         "private_key": {"type": "string"},
                         "client_email": {"type": "string"},
+                        "firestore_project_id": {"type": "string"},
+                        "firestore_private_key_id": {"type": "string"},
+                        "firestore_private_key": {"type": "string"},
+                        "firestore_client_email": {"type": "string"},
                         "token_uri": {"type": "string"},
                         "collection_name": {"type": "string"},
                         "start_date": {"type": "string", "format": "date-time"},
@@ -174,6 +179,7 @@ class Tappicqer(Tap):
         super().sync_all()
         if extension and full_sync_streams:
             extension.write_post_full_sync_bookmarks(full_sync_streams)
+
 
 if __name__ == "__main__":
     Tappicqer.cli()

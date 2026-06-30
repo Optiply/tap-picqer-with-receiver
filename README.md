@@ -1,6 +1,6 @@
 # tap-picqer
 
-`tap-picqer` is a Singer tap for Picqer, with Tap Webhook extension.
+`tap-picqer` is a Singer tap for Picqer, with Webhook Support.
 
 Built with the [Meltano Tap SDK](https://sdk.meltano.com) for Singer Taps.
 
