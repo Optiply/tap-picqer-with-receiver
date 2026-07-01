@@ -1,8 +1,6 @@
 """picqer tap class."""
 
-from typing import List
-
-from singer_sdk import Tap, Stream
+from singer_sdk import Stream, Tap
 from singer_sdk import typing as th  # JSON schema typing helpers
 from tap_picqer.streams import (
     ProductsStream,
@@ -24,7 +22,7 @@ from tap_picqer.streams import (
     PicklistsClosedStream,
     ReceiptsStream,
 )
-from tap_firestore.extension import FirestoreExtension
+from tap_firestore.extension import FirestoreExtension  # type: ignore[reportMissingImports]
 
 STREAM_TYPES = [
     ProductsStream,
@@ -80,7 +78,7 @@ class Tappicqer(Tap):
                 {
                     "type": "object",
                     "properties": {
-                        "enabled": {"type": "boolean"},
+                        "enabled": {"type": "boolean", "default": True},
                         "tenant_uuid": {"type": "string"},
                         "project_id": {"type": "string"},
                         "private_key_id": {"type": "string"},
@@ -156,11 +154,11 @@ class Tappicqer(Tap):
         if "force_full_sync" in state:
             self.state["force_full_sync"] = list(state.get("force_full_sync", []))
 
-    def discover_streams(self) -> List[Stream]:
+    def discover_streams(self) -> list[Stream]:
         """Return a list of discovered streams."""
         main_streams = [stream_class(tap=self) for stream_class in STREAM_TYPES]
         ext_config = self.config.get("firestore_extension")
-        if not ext_config or not ext_config.get("enabled", False):
+        if not ext_config or not ext_config.get("enabled", True):
             return main_streams
 
         extension = FirestoreExtension(tap=self, config=ext_config).initialize()
@@ -168,12 +166,12 @@ class Tappicqer(Tap):
         firestore_streams = extension.discover_streams(main_streams)
         return [*filtered_main, *firestore_streams]
 
-    def sync_all(self) -> None:
+    def sync_all(self) -> None:  # type: ignore[reportIncompatibleMethodOverride]
         """Apply receiver/host runtime selection before syncing."""
         ext_config = self.config.get("firestore_extension")
         extension = None
         full_sync_streams = []
-        if ext_config and ext_config.get("enabled", False):
+        if ext_config and ext_config.get("enabled", True):
             extension = FirestoreExtension(tap=self, config=ext_config)
             full_sync_streams = extension.apply_runtime_selection(self.streams)
         super().sync_all()
@@ -182,4 +180,4 @@ class Tappicqer(Tap):
 
 
 if __name__ == "__main__":
-    Tappicqer.cli()
+    Tappicqer.cli()  # type: ignore[operator]
