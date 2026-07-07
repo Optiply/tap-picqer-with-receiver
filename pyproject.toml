@@ -13,7 +13,7 @@ license = "Apache 2.0"
 python = ">=3.9,<3.11"
 requests = "^2.25.1"
 singer-sdk = "^0.5.0"
-tap-firestore = {git = "https://gitlab.com/mariocosta_opt/tap-firestore.git", branch = "main"}
+tap-firestore = {git = "https://github.com/Optiply/tap-firestore", branch = "main"}
 
 [tool.poetry.dev-dependencies]
 pytest = "^6.2.5"
