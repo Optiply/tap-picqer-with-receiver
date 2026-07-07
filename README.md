@@ -9,7 +9,7 @@ This version also supports the Firestore receiver extension from `tap-firestore`
 From GitHub:
 
 ```bash
-pipx install git+https://github.com/mariocostaoptiply/tap-picqer-with-receiver.git
+pipx install git+https://github.com/Optiply/tap-picqer-with-receiver.git
 ```
 
 For local development:
