@@ -2,7 +2,7 @@
 
 import json
 from datetime import datetime, timezone
-from typing import Optional
+from typing import Any, Optional
 
 from singer_sdk import typing as th  # JSON Schema typing helpers
 
@@ -422,6 +422,30 @@ class OrdersStream(picqerStream):
     path = "/orders"
     pagination = True
     primary_keys = ["idorder"]
+
+    def get_url_params(
+        self,
+        context: Optional[dict],
+        next_page_token: Optional[Any],
+    ) -> dict:
+        """Use config start_date as sincedate without defining a replication key."""
+        params = super().get_url_params(context, next_page_token)
+        if "sincedate" not in params and self.config.get("start_date"):
+            params["sincedate"] = self._format_sincedate(self.config["start_date"])
+        return params
+
+    @staticmethod
+    def _format_sincedate(start_date) -> str:
+        """Format config start_date for Picqer's sincedate query parameter."""
+        if isinstance(start_date, datetime):
+            return start_date.strftime("%Y-%m-%d %H:%M:%S")
+        text_value = str(start_date)
+        try:
+            parsed = datetime.fromisoformat(text_value.replace("Z", "+00:00"))
+        except ValueError:
+            return text_value
+        return parsed.strftime("%Y-%m-%d %H:%M:%S")
+
     schema = th.PropertiesList(
         th.Property("idorder", th.IntegerType),
         th.Property("idcustomer", th.IntegerType),
