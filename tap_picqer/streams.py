@@ -1,10 +1,18 @@
 """Stream type classes for tap-picqer."""
 
 import json
+from collections import deque
+from concurrent.futures import CancelledError, ThreadPoolExecutor
+from contextlib import ExitStack
 from datetime import datetime, timezone
+from email.utils import parsedate_to_datetime
+from random import uniform
+from threading import Event, Lock
+from time import monotonic, time
 from typing import Any, Optional
 
 from singer_sdk import typing as th  # JSON Schema typing helpers
+import requests
 
 from tap_picqer.client import picqerStream
 
@@ -92,9 +100,111 @@ class ProductsStream(picqerStream):
         th.Property("action", th.StringType),
     ).to_dict()
 
+    def request_records(self, context: Optional[dict]):
+        """Prefetch API pages; parsing, child sync, and state stay on the caller."""
+        workers = min(self.config.get("mt_workers", 1), 10)
+        if workers == 1:
+            yield from super().request_records(context)
+            return
+
+        stopped = Event()
+        cooldown_lock = Lock()
+        resume_at = 0.0
+
+        def fetch_page(session, prepared_request):
+            attempts = 0
+
+            def request():
+                nonlocal attempts, resume_at
+                while not stopped.is_set():
+                    with cooldown_lock:
+                        delay = resume_at - monotonic()
+                    if delay <= 0:
+                        break
+                    stopped.wait(delay)
+                if stopped.is_set():
+                    raise CancelledError()
+
+                attempts += 1
+                response = session.send(prepared_request, timeout=(10, self.timeout))
+                if self._LOG_REQUEST_METRICS:
+                    self._write_request_duration_log(
+                        endpoint=self.path,
+                        response=response,
+                        context=context,
+                        extra_tags=(
+                            {"url": prepared_request.path_url}
+                            if self._LOG_REQUEST_METRIC_URLS else None
+                        ),
+                    )
+                if response.status_code == 429:
+                    delay = 2 ** attempts + uniform(0, 1)
+                    retry_after = response.headers.get("Retry-After")
+                    if retry_after:
+                        try:
+                            delay = float(retry_after)
+                        except ValueError:
+                            try:
+                                delay = parsedate_to_datetime(retry_after).timestamp() - time()
+                            except (TypeError, ValueError, OverflowError):
+                                pass
+                    delay = max(0, min(60, delay))
+                    with cooldown_lock:
+                        resume_at = max(resume_at, monotonic() + delay)
+                    self.logger.warning(
+                        "Products rate limited; pausing page requests for %.2f seconds.",
+                        delay,
+                    )
+                self.validate_response(response)
+                return response
+
+            return self.request_decorator(request)()
+
+        with ExitStack() as stack, ThreadPoolExecutor(max_workers=workers) as pool:
+            sessions = [
+                stack.enter_context(requests.Session()) for _ in range(workers)
+            ]
+            pending = deque()
+            next_offset = 0
+
+            def submit(session):
+                nonlocal next_offset
+                prepared = self.prepare_request(context, next_offset or None)
+                pending.append(
+                    (next_offset, session, pool.submit(fetch_page, session, prepared))
+                )
+                next_offset += 100
+
+            try:
+                for session in sessions:
+                    submit(session)
+                while pending:
+                    offset, session, future = pending.popleft()
+                    response = future.result()
+                    yield from self.parse_response(response)
+                    if not self.get_next_page_token(response, offset or None):
+                        return
+                    submit(session)
+            finally:
+                stopped.set()
+                for _, _, future in pending:
+                    future.cancel()
+
     def get_child_context(self, record: dict, context: Optional[dict]) -> dict:
         """Return a context dictionary for child streams."""
         return {"idproduct": record["idproduct"], "type": record["type"]}
+
+    def _sync_children(self, child_context: dict) -> None:
+        """Skip ineligible parts before the SDK creates child state or messages."""
+        for child_stream in self.child_streams:
+            if (
+                isinstance(child_stream, PartProductsStream)
+                and child_stream.ALLOWED_PRODUCT_TYPES is not None
+                and child_context.get("type") not in child_stream.ALLOWED_PRODUCT_TYPES
+            ):
+                continue
+            if child_stream.selected or child_stream.has_selected_descendents:
+                child_stream.sync(context=child_context)
 
     def post_process(self, row: dict, context: Optional[dict]) -> Optional[dict]:
         """Serialize flexible scalar fields as strings."""
@@ -333,14 +443,6 @@ class PartProductsStream(picqerStream):
         th.Property("productcode", th.StringType),
         th.Property("name", th.StringType),
     ).to_dict()
-
-    def get_records(self, context: Optional[dict]):
-        """Skip requesting parts when parent product type is not in ALLOWED_PRODUCT_TYPES."""
-        if self.ALLOWED_PRODUCT_TYPES is not None and context:
-            product_type = context.get("type")
-            if product_type not in self.ALLOWED_PRODUCT_TYPES:
-                return
-        yield from super().get_records(context)
 
     def post_process(self, row: dict, context: Optional[dict]) -> dict:
         if row.get('error') == True:

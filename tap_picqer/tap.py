@@ -66,6 +66,13 @@ class Tappicqer(Tap):
             description="Picqer organization subdomain.",
         ),
         th.Property(
+            "mt_workers",
+            th.CustomType({"type": "integer", "minimum": 1}),
+            required=True,
+            default=1,
+            description="Concurrent products API requests; values above 10 use 10 workers.",
+        ),
+        th.Property(
             "picqer_fulfilment",
             th.BooleanType,
             required=False,

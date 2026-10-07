@@ -34,6 +34,7 @@ tap-firestore = {git = "https://github.com/Optiply/tap-firestore", branch = "mai
 | --- | --- | --- | --- |
 | `api_key` | Yes | unset | Picqer API key. Used as HTTP Basic Auth username with an empty password. |
 | `org` | Yes | unset | Picqer organization subdomain. Requests go to `https://{org}.picqer.com/api/v1`. |
+| `mt_workers` | No | `1` | Concurrent product-page requests. Positive integer; values above `10` are capped at `10`. |
 | `picqer_fulfilment` | No | `false` | Skip Picqer endpoints unavailable for fulfilment accounts. |
 | `firestore_extension` | No | unset | Optional Firestore receiver configuration. If present, the extension is enabled unless `enabled` is explicitly `false`. |
 
