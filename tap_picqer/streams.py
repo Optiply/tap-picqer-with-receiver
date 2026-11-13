@@ -48,6 +48,7 @@ class ProductsStream(picqerStream):
         th.Property("price", th.NumberType),
         th.Property("fixedstockprice", th.NumberType),
         th.Property("idsupplier", th.IntegerType),
+        th.Property("suppliers", th.StringType),
         th.Property("productcode", th.StringType),
         th.Property("productcode_supplier", th.StringType),
         th.Property("deliverytime", th.IntegerType),
@@ -207,7 +208,8 @@ class ProductsStream(picqerStream):
                 child_stream.sync(context=child_context)
 
     def post_process(self, row: dict, context: Optional[dict]) -> Optional[dict]:
-        """Serialize flexible scalar fields as strings."""
+        """Serialize flexible product fields as strings."""
+        row["suppliers"] = _stringify_field_value(row.get("suppliers"))
         return _stringify_fields(row, ["analysis_pick_amount_per_day"])
 
 
@@ -226,6 +228,7 @@ class ProductsInativeStream(picqerStream):
         th.Property("price", th.NumberType),
         th.Property("fixedstockprice", th.NumberType),
         th.Property("idsupplier", th.IntegerType),
+        th.Property("suppliers", th.StringType),
         th.Property("productcode", th.StringType),
         th.Property("productcode_supplier", th.StringType),
         th.Property("deliverytime", th.IntegerType),
@@ -281,6 +284,7 @@ class ProductsInativeStream(picqerStream):
 
     def post_process(self, row: dict, context: Optional[dict]) -> Optional[dict]:
         """Filter records client-side for incremental behavior."""
+        row["suppliers"] = _stringify_field_value(row.get("suppliers"))
         row = _stringify_fields(row, ["analysis_pick_amount_per_day"])
         start_ts = self.get_starting_timestamp(context)
         if not start_ts:

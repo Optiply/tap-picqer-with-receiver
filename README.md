@@ -72,6 +72,8 @@ The tap currently discovers these Picqer API streams:
 | `picklists_closed` | `/picklists?status=closed` | Incremental on `created`. |
 | `receipts` | `/receipts` | Incremental on `updated`. |
 
+`products` and `products_inactive` expose `suppliers` as a nullable JSON string: a populated list or `[]` is serialized, while a missing or null value is emitted as null. Inherited receiver product schemas use the same string field type.
+
 Pagination uses Picqer's offset style: the tap requests offsets in steps of 100 while responses contain records.
 
 When a stream has a replication key, the tap sends Picqer date filters:
