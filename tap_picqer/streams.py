@@ -76,8 +76,13 @@ class ProductsStream(picqerStream):
         th.Property("purchase_in_quantities_of", th.IntegerType),
         th.Property("hs_code", th.StringType),
         th.Property("country_of_origin", th.StringType),
+        th.Property("mid_code", th.StringType),
         th.Property("active", th.BooleanType),
+        th.Property("track_lot_numbers", th.BooleanType),
+        th.Property("track_expiration_dates", th.BooleanType),
         th.Property("idfulfilment_customer", th.IntegerType),
+        th.Property("comment_count", th.IntegerType),
+        th.Property("analysis_abc_classification", th.StringType),
         th.Property("analysis_pick_amount_per_day", th.StringType),
         th.Property(
             "pricelists",
@@ -93,6 +98,7 @@ class ProductsStream(picqerStream):
         th.Property("assembled", th.BooleanType),
         th.Property("show_on_portal", th.BooleanType),
         th.Property("tags", th.CustomType({"type": ["array", "object", "null"]})),
+        th.Property("images", th.ArrayType(th.StringType)),
         th.Property(
             "productfields", th.CustomType({"type": ["array", "object", "null"]})
         ),
@@ -256,8 +262,13 @@ class ProductsInativeStream(picqerStream):
         th.Property("purchase_in_quantities_of", th.IntegerType),
         th.Property("hs_code", th.StringType),
         th.Property("country_of_origin", th.StringType),
+        th.Property("mid_code", th.StringType),
         th.Property("active", th.BooleanType),
+        th.Property("track_lot_numbers", th.BooleanType),
+        th.Property("track_expiration_dates", th.BooleanType),
         th.Property("idfulfilment_customer", th.IntegerType),
+        th.Property("comment_count", th.IntegerType),
+        th.Property("analysis_abc_classification", th.StringType),
         th.Property("analysis_pick_amount_per_day", th.StringType),
         th.Property(
             "pricelists",
@@ -273,6 +284,7 @@ class ProductsInativeStream(picqerStream):
         th.Property("assembled", th.BooleanType),
         th.Property("show_on_portal", th.BooleanType),
         th.Property("tags", th.CustomType({"type": ["array", "object", "null"]})),
+        th.Property("images", th.ArrayType(th.StringType)),
         th.Property(
             "productfields", th.CustomType({"type": ["array", "object", "null"]})
         ),
