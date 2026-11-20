@@ -34,6 +34,7 @@ tap-firestore = {git = "https://github.com/Optiply/tap-firestore", branch = "mai
 | --- | --- | --- | --- |
 | `api_key` | Yes | unset | Picqer API key. Used as HTTP Basic Auth username with an empty password. |
 | `org` | Yes | unset | Picqer organization subdomain. Requests go to `https://{org}.picqer.com/api/v1`. |
+| `mt_workers` | No | `1` | Concurrent product-page requests. Positive integer; values above `10` are capped at `10`. |
 | `picqer_fulfilment` | No | `false` | Skip Picqer endpoints unavailable for fulfilment accounts. |
 | `firestore_extension` | No | unset | Optional Firestore receiver configuration. If present, the extension is enabled unless `enabled` is explicitly `false`. |
 
@@ -70,6 +71,8 @@ The tap currently discovers these Picqer API streams:
 | `picklists` | `/picklists` | Incremental on `created`. |
 | `picklists_closed` | `/picklists?status=closed` | Incremental on `created`. |
 | `receipts` | `/receipts` | Incremental on `updated`. |
+
+`products` and `products_inactive` expose `suppliers` as a nullable JSON string: a populated list or `[]` is serialized, while a missing or null value is emitted as null. Inherited receiver product schemas use the same string field type.
 
 Pagination uses Picqer's offset style: the tap requests offsets in steps of 100 while responses contain records.
 
