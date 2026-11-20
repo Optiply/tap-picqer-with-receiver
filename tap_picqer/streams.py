@@ -48,6 +48,7 @@ class ProductsStream(picqerStream):
         th.Property("price", th.NumberType),
         th.Property("fixedstockprice", th.NumberType),
         th.Property("idsupplier", th.IntegerType),
+        th.Property("suppliers", th.StringType),
         th.Property("productcode", th.StringType),
         th.Property("productcode_supplier", th.StringType),
         th.Property("deliverytime", th.IntegerType),
@@ -75,8 +76,13 @@ class ProductsStream(picqerStream):
         th.Property("purchase_in_quantities_of", th.IntegerType),
         th.Property("hs_code", th.StringType),
         th.Property("country_of_origin", th.StringType),
+        th.Property("mid_code", th.StringType),
         th.Property("active", th.BooleanType),
+        th.Property("track_lot_numbers", th.BooleanType),
+        th.Property("track_expiration_dates", th.BooleanType),
         th.Property("idfulfilment_customer", th.IntegerType),
+        th.Property("comment_count", th.IntegerType),
+        th.Property("analysis_abc_classification", th.StringType),
         th.Property("analysis_pick_amount_per_day", th.StringType),
         th.Property(
             "pricelists",
@@ -92,6 +98,7 @@ class ProductsStream(picqerStream):
         th.Property("assembled", th.BooleanType),
         th.Property("show_on_portal", th.BooleanType),
         th.Property("tags", th.CustomType({"type": ["array", "object", "null"]})),
+        th.Property("images", th.ArrayType(th.StringType)),
         th.Property(
             "productfields", th.CustomType({"type": ["array", "object", "null"]})
         ),
@@ -207,7 +214,8 @@ class ProductsStream(picqerStream):
                 child_stream.sync(context=child_context)
 
     def post_process(self, row: dict, context: Optional[dict]) -> Optional[dict]:
-        """Serialize flexible scalar fields as strings."""
+        """Serialize flexible product fields as strings."""
+        row["suppliers"] = _stringify_field_value(row.get("suppliers"))
         return _stringify_fields(row, ["analysis_pick_amount_per_day"])
 
 
@@ -226,6 +234,7 @@ class ProductsInativeStream(picqerStream):
         th.Property("price", th.NumberType),
         th.Property("fixedstockprice", th.NumberType),
         th.Property("idsupplier", th.IntegerType),
+        th.Property("suppliers", th.StringType),
         th.Property("productcode", th.StringType),
         th.Property("productcode_supplier", th.StringType),
         th.Property("deliverytime", th.IntegerType),
@@ -253,8 +262,13 @@ class ProductsInativeStream(picqerStream):
         th.Property("purchase_in_quantities_of", th.IntegerType),
         th.Property("hs_code", th.StringType),
         th.Property("country_of_origin", th.StringType),
+        th.Property("mid_code", th.StringType),
         th.Property("active", th.BooleanType),
+        th.Property("track_lot_numbers", th.BooleanType),
+        th.Property("track_expiration_dates", th.BooleanType),
         th.Property("idfulfilment_customer", th.IntegerType),
+        th.Property("comment_count", th.IntegerType),
+        th.Property("analysis_abc_classification", th.StringType),
         th.Property("analysis_pick_amount_per_day", th.StringType),
         th.Property(
             "pricelists",
@@ -270,6 +284,7 @@ class ProductsInativeStream(picqerStream):
         th.Property("assembled", th.BooleanType),
         th.Property("show_on_portal", th.BooleanType),
         th.Property("tags", th.CustomType({"type": ["array", "object", "null"]})),
+        th.Property("images", th.ArrayType(th.StringType)),
         th.Property(
             "productfields", th.CustomType({"type": ["array", "object", "null"]})
         ),
@@ -281,6 +296,7 @@ class ProductsInativeStream(picqerStream):
 
     def post_process(self, row: dict, context: Optional[dict]) -> Optional[dict]:
         """Filter records client-side for incremental behavior."""
+        row["suppliers"] = _stringify_field_value(row.get("suppliers"))
         row = _stringify_fields(row, ["analysis_pick_amount_per_day"])
         start_ts = self.get_starting_timestamp(context)
         if not start_ts:
