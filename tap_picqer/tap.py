@@ -1,7 +1,8 @@
 """picqer tap class."""
 
-from singer_sdk import Stream, Tap
-from singer_sdk import typing as th  # JSON schema typing helpers
+from hotglue_singer_sdk import Stream, Tap
+from hotglue_singer_sdk import typing as th  # JSON schema typing helpers
+from hotglue_singer_sdk.helpers.capabilities import AlertingLevel
 from tap_picqer.streams import (
     ProductsStream,
     ProductsInativeStream,
@@ -50,12 +51,14 @@ class Tappicqer(Tap):
     """picqer tap class."""
 
     name = "tap-picqer"
+    alerting_level = AlertingLevel.WARNING
+    dynamic_catalog = True
 
     # TODO: Update this section with the actual config values you expect:
     config_jsonschema = th.PropertiesList(
         th.Property(
             "api_key",
-            th.StringType,
+            th.CustomType({"type": "string", "secret": True}),
             required=True,
             description="The token to authenticate against the API service",
         ),
@@ -89,11 +92,11 @@ class Tappicqer(Tap):
                         "tenant_uuid": {"type": "string"},
                         "project_id": {"type": "string"},
                         "private_key_id": {"type": "string"},
-                        "private_key": {"type": "string"},
+                        "private_key": {"type": "string", "secret": True},
                         "client_email": {"type": "string"},
                         "firestore_project_id": {"type": "string"},
                         "firestore_private_key_id": {"type": "string"},
-                        "firestore_private_key": {"type": "string"},
+                        "firestore_private_key": {"type": "string", "secret": True},
                         "firestore_client_email": {"type": "string"},
                         "token_uri": {"type": "string"},
                         "collection_name": {"type": "string"},

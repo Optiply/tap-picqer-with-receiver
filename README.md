@@ -1,6 +1,6 @@
 # tap-picqer-with-receiver
 
-`tap-picqer` is a Singer tap for the [Picqer API](https://picqer.com/en/api) built with the Meltano Singer SDK.
+`tap-picqer` is a Singer tap for the [Picqer API](https://picqer.com/en/api) built with the Hotglue Singer SDK.
 
 This version also supports the Firestore receiver extension from `tap-firestore`, so selected Picqer streams can switch from full Picqer API pulls to Firestore-backed incremental receiver streams after an initial sync.
 
@@ -9,7 +9,7 @@ This version also supports the Firestore receiver extension from `tap-firestore`
 From GitHub:
 
 ```bash
-pipx install git+https://github.com/Optiply/tap-picqer-with-receiver.git
+pipx install 'git+https://github.com/mariocostaoptiply/tap-picqer-with-receiver.git@pilot/hotglue-sdk'
 ```
 
 For local development:
@@ -23,8 +23,18 @@ poetry run tap-picqer --help
 `tap-firestore` is installed as a dependency from:
 
 ```toml
-tap-firestore = {git = "https://github.com/Optiply/tap-firestore", branch = "main"}
+tap-firestore = {git = "https://github.com/mariocostaoptiply/tap-firestore.git", branch = "pilot/hotglue-sdk"}
 ```
+
+Both pilot packages use `hotglue-singer-sdk==1.0.54` (Apache-2.0). Existing stream
+names, receiver bookmarks, `force_full_sync`, and API-to-receiver handoff are
+preserved. Keep the tenant's existing state when testing.
+
+The tap advertises warning-level Hotglue exception support and writes structured
+`hg-tap-exception-*.json` files for unhandled failures. HTTP 401 is classified as
+invalid credentials without retry; HTTP 403 remains fatal. This does not fix
+Picqer permissions or prove deployed job notifications: validate those in the
+one-tenant pilot. Roll back by restoring the tenant's previous install URI.
 
 ## Configuration
 
@@ -184,6 +194,10 @@ tap-picqer --about
 poetry install
 poetry run pytest
 ```
+
+The pilot uses pytest 7.4 and Black 24 because the old pytest 6 / Black 21 tools
+are incompatible with the resolved AnyIO / Click dependencies. CLI regression
+tests mock Picqer and Firestore; they make no live requests.
 
 The CLI entrypoint is:
 
