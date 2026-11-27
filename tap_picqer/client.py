@@ -3,11 +3,12 @@
 import requests
 from pathlib import Path
 from typing import Any, Dict, Optional, Iterable
-from singer_sdk.exceptions import FatalAPIError, RetriableAPIError
+from hotglue_singer_sdk.exceptions import FatalAPIError, RetriableAPIError
 from datetime import datetime
-from singer_sdk.helpers.jsonpath import extract_jsonpath
-from singer_sdk.streams import RESTStream
-from singer_sdk.authenticators import BasicAuthenticator
+from hotglue_singer_sdk.helpers.jsonpath import extract_jsonpath
+from hotglue_singer_sdk.streams import RESTStream
+from hotglue_singer_sdk.authenticators import BasicAuthenticator
+from hotglue_singer_sdk.tap_base import InvalidCredentialsError
 
 
 class picqerStream(RESTStream):
@@ -103,6 +104,8 @@ class picqerStream(RESTStream):
         ):
             msg = self.response_error_message(response)
             raise RetriableAPIError(msg, response)
+        elif response.status_code == 401:
+            raise InvalidCredentialsError(self.response_error_message(response))
         elif response.status_code == 404:
             response_json = self._safe_response_json(response)
             if isinstance(response_json, dict) and response_json.get("error_code") == 20:

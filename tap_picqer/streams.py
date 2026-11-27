@@ -11,7 +11,7 @@ from threading import Event, Lock
 from time import monotonic, time
 from typing import Any, Optional
 
-from singer_sdk import typing as th  # JSON Schema typing helpers
+from hotglue_singer_sdk import typing as th  # JSON Schema typing helpers
 import requests
 
 from tap_picqer.client import picqerStream

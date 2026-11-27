@@ -9,7 +9,12 @@ from urllib.parse import parse_qs, urlparse
 import pytest
 import requests
 import singer
-from singer_sdk.exceptions import ConfigValidationError, FatalAPIError, RetriableAPIError
+from hotglue_singer_sdk.exceptions import (
+    ConfigValidationError,
+    FatalAPIError,
+    RetriableAPIError,
+)
+from hotglue_singer_sdk.tap_base import InvalidCredentialsError
 
 import tap_picqer.streams as streams
 from tap_picqer.tap import Tappicqer
@@ -133,9 +138,11 @@ def test_failed_page_never_emits_later_pages(monkeypatch, capsys, failure):
         return response(request, [{"idproduct": page + 1, "type": "normal"}])
 
     monkeypatch.setattr(requests.Session, "send", send)
-    expected = requests.exceptions.ReadTimeout if failure == "timeout" else (
-        RetriableAPIError if failure == 500 else FatalAPIError
-    )
+    expected = {
+        "timeout": requests.exceptions.ReadTimeout,
+        401: InvalidCredentialsError,
+        500: RetriableAPIError,
+    }.get(failure, FatalAPIError)
     with pytest.raises(expected):
         products_tap(2).sync_all()
     assert product_ids(capsys) == [1]
