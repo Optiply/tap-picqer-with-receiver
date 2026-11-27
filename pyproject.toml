@@ -13,7 +13,7 @@ license = "Apache 2.0"
 python = ">=3.9,<3.11"
 requests = "^2.25.1"
 hotglue-singer-sdk = "1.0.54"
-tap-firestore = {git = "https://github.com/Optiply/tap-firestore.git", rev = "dde26186993370848282bda34f3ceb431808cb3f"}
+tap-firestore = {git = "https://github.com/Optiply/tap-firestore.git", branch = "main"}
 
 [tool.poetry.dev-dependencies]
 pytest = "^7.4.4"

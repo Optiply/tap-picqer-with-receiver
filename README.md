@@ -23,10 +23,8 @@ poetry run tap-picqer --help
 `tap-firestore` is installed as a dependency from:
 
 ```toml
-tap-firestore = {git = "https://github.com/Optiply/tap-firestore.git", rev = "dde26186993370848282bda34f3ceb431808cb3f"}
+tap-firestore = {git = "https://github.com/Optiply/tap-firestore.git", branch = "main"}
 ```
-
-The commit pin keeps both SDKs coordinated while the repositories roll out independently.
 
 Both packages use `hotglue-singer-sdk==1.0.54` (Apache-2.0). Existing stream
 names, receiver bookmarks, `force_full_sync`, and API-to-receiver handoff are
