@@ -9,7 +9,7 @@ This version also supports the Firestore receiver extension from `tap-firestore`
 From GitHub:
 
 ```bash
-pipx install 'git+https://github.com/mariocostaoptiply/tap-picqer-with-receiver.git@pilot/hotglue-sdk'
+pipx install 'git+https://github.com/Optiply/tap-picqer-with-receiver.git'
 ```
 
 For local development:
@@ -23,18 +23,20 @@ poetry run tap-picqer --help
 `tap-firestore` is installed as a dependency from:
 
 ```toml
-tap-firestore = {git = "https://github.com/mariocostaoptiply/tap-firestore.git", branch = "pilot/hotglue-sdk"}
+tap-firestore = {git = "https://github.com/Optiply/tap-firestore.git", rev = "dde26186993370848282bda34f3ceb431808cb3f"}
 ```
 
-Both pilot packages use `hotglue-singer-sdk==1.0.54` (Apache-2.0). Existing stream
+The commit pin keeps both SDKs coordinated while the repositories roll out independently.
+
+Both packages use `hotglue-singer-sdk==1.0.54` (Apache-2.0). Existing stream
 names, receiver bookmarks, `force_full_sync`, and API-to-receiver handoff are
-preserved. Keep the tenant's existing state when testing.
+preserved. Keep the tenant's existing state when upgrading.
 
 The tap advertises warning-level Hotglue exception support and writes structured
 `hg-tap-exception-*.json` files for unhandled failures. HTTP 401 is classified as
 invalid credentials without retry; HTTP 403 remains fatal. This does not fix
-Picqer permissions or prove deployed job notifications: validate those in the
-one-tenant pilot. Roll back by restoring the tenant's previous install URI.
+Picqer permissions or prove deployed job notifications: validate those during
+rollout. Roll back by restoring the tenant's previous install URI.
 
 ## Configuration
 
@@ -195,7 +197,7 @@ poetry install
 poetry run pytest
 ```
 
-The pilot uses pytest 7.4 and Black 24 because the old pytest 6 / Black 21 tools
+Development uses pytest 7.4 and Black 24 because the old pytest 6 / Black 21 tools
 are incompatible with the resolved AnyIO / Click dependencies. CLI regression
 tests mock Picqer and Firestore; they make no live requests.
 

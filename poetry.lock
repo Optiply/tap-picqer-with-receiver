@@ -3650,9 +3650,9 @@ typing-extensions = ">=4.4.0"
 
 [package.source]
 type = "git"
-url = "https://github.com/mariocostaoptiply/tap-firestore.git"
-reference = "pilot/hotglue-sdk"
-resolved_reference = "dfa28f19d0271b7539c8455878e25a6feb15e65d"
+url = "https://github.com/Optiply/tap-firestore.git"
+reference = "dde26186993370848282bda34f3ceb431808cb3f"
+resolved_reference = "dde26186993370848282bda34f3ceb431808cb3f"
 
 [[package]]
 name = "toml"
@@ -3857,4 +3857,4 @@ typing-extensions = {version = ">=4.16", markers = "python_version < \"3.11\""}
 [metadata]
 lock-version = "2.1"
 python-versions = ">=3.9,<3.11"
-content-hash = "881e7d7212688c356051bb5ae49ce13e6b2f3734c2176ba325e86bc527998346"
+content-hash = "3fdb9e1378f2ba29fb50c986c9c07f3fc0b6dff885e1c3fa6226a212189f189c"
